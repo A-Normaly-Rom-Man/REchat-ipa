@@ -9,10 +9,10 @@ jobs:
     runs-on: macos-latest
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Setup Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: 18
 
@@ -21,13 +21,13 @@ jobs:
           mkdir www
           cp index.html www/
 
-      - name: Install Capacitor Core & CLI (Fixed Version)
+      - name: Install Capacitor Core & CLI
         run: |
           npm init -y
           npm install @capacitor/core@5.7.0 @capacitor/cli@5.7.0
           npx cap init MyApp com.myapp.app --web-dir www
 
-      - name: Add iOS Platform (Fixed Version)
+      - name: Add iOS Platform
         run: |
           npm install @capacitor/ios@5.7.0
           npx cap add ios
@@ -37,8 +37,13 @@ jobs:
           pod repo update
           npx cap sync ios
 
-      - name: Build IPA via Xcode
+      - name: Build Xcode Archive
         run: |
           cd ios/App
           xcodebuild -workspace App.xcworkspace -scheme App -configuration Release -sdk iphoneos CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO archive -archivePath build/App.xcarchive
-          xcodebuild -exportArchive -archivePath build/App.xcarchive -exportOptionsPlist ../../ExportOptions.plist -exportPath build/output || true
+
+      - name: Upload Build Output
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-build-files
+          path: ios/App/build/
