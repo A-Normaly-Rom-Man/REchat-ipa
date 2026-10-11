@@ -1,0 +1,42 @@
+name: Build iOS IPA
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  build-ios:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+
+      - name: Create Web Directory & Move HTML
+        run: |
+          mkdir www
+          cp index.html www/
+
+      - name: Install Capacitor CLI & Core
+        run: |
+          npm init -y
+          npm install @capacitor/core @capacitor/cli
+          npx cap init MyApp com.myapp.app --web-dir www
+
+      - name: Add iOS Platform
+        run: |
+          npm install @capacitor/ios
+          npx cap add ios
+
+      - name: Sync Files
+        run: npx cap sync ios
+
+      - name: Build IPA via Xcode
+        run: |
+          cd ios/App
+          xcodebuild -workspace App.xcworkspace -scheme App -configuration Release -sdk iphoneos CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO archive -archivePath build/App.xcarchive
+          xcodebuild -exportArchive -archivePath build/App.xcarchive -exportOptionsPlist ../../ExportOptions.plist -exportPath build/output || true
