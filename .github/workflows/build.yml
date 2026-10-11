@@ -21,19 +21,21 @@ jobs:
           mkdir www
           cp index.html www/
 
-      - name: Install Capacitor CLI & Core
+      - name: Install Capacitor Core & CLI (Fixed Version)
         run: |
           npm init -y
-          npm install @capacitor/core @capacitor/cli
+          npm install @capacitor/core@5.7.0 @capacitor/cli@5.7.0
           npx cap init MyApp com.myapp.app --web-dir www
 
-      - name: Add iOS Platform
+      - name: Add iOS Platform (Fixed Version)
         run: |
-          npm install @capacitor/ios
+          npm install @capacitor/ios@5.7.0
           npx cap add ios
 
-      - name: Sync Files
-        run: npx cap sync ios
+      - name: Update CocoaPods Repo & Sync
+        run: |
+          pod repo update
+          npx cap sync ios
 
       - name: Build IPA via Xcode
         run: |
