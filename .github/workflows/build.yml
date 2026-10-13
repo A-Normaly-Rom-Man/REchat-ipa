@@ -1,49 +1,43 @@
 name: Build iOS IPA
-
 on:
+  workflow_dispatch:
   push:
-    branches: [ main ]
-
+    branches: [main]
 jobs:
   build-ios:
-    runs-on: macos-latest
+    runs-on: macos-15
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
-          node-version: 18
-
-      - name: Create Web Directory & Move HTML
+          node-version: 20
+      - name: Klasorleri hazirla
         run: |
-          mkdir www
-          cp index.html www/
-
-      - name: Install Capacitor Core & CLI
+          mkdir -p www resources
+          cp index.html www/index.html
+          cp icon.png resources/icon.png
+          cp icon.png resources/icon-only.png
+          cp splash.png resources/splash.png
+          chmod +x patch-ios.sh
+      - run: npm install
+      - run: npx cap add ios
+      - run: npx capacitor-assets generate --ios
+      - run: ./patch-ios.sh
+      - run: npx cap sync ios
+      - name: Archive
+        working-directory: ios/App
         run: |
-          npm init -y
-          npm install @capacitor/core@5.7.0 @capacitor/cli@5.7.0
-          npx cap init MyApp com.myapp.app --web-dir www
-
-      - name: Add iOS Platform
+          xcodebuild -workspace App.xcworkspace -scheme App -configuration Release \
+            -sdk iphoneos -destination 'generic/platform=iOS' \
+            -archivePath $PWD/build/App.xcarchive archive \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=""
+      - name: ipa olustur
         run: |
-          npm install @capacitor/ios@5.7.0
-          npx cap add ios
-
-      - name: Update CocoaPods Repo & Sync
-        run: |
-          pod repo update
-          npx cap sync ios
-
-      - name: Build Xcode Archive
-        run: |
-          cd ios/App
-          xcodebuild -workspace App.xcworkspace -scheme App -configuration Release -sdk iphoneos CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO archive -archivePath build/App.xcarchive
-
-      - name: Upload Build Output
-        uses: actions/upload-artifact@v4
+          mkdir -p Payload
+          cp -R ios/App/build/App.xcarchive/Products/Applications/App.app Payload/
+          zip -qry reChat.ipa Payload
+      - uses: actions/upload-artifact@v4
         with:
-          name: ios-build-files
-          path: ios/App/build/
+          name: reChat-ipa
+          path: reChat.ipa
+
