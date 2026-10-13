@@ -11,18 +11,26 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-      - name: Klasorleri hazirla
+      - name: Dosyalari kontrol et
         run: |
-          mkdir -p www resources
-          cp index.html www/index.html
-          cp icon.png resources/icon.png
-          cp icon.png resources/icon-only.png
-          cp splash.png resources/splash.png
-          chmod +x patch-ios.sh
+          ls -la . www resources ios-patch || true
+          test -f www/index.html || { echo "HATA: www/index.html yok"; exit 1; }
+          SZ=$(wc -c < www/index.html); echo "index.html boyutu: $SZ"
+          [ "$SZ" -gt 150000 ] || { echo "HATA: www/index.html reChat dosyasi degil (cok kucuk)"; exit 1; }
+          test -f package.json || { echo "HATA: package.json yok"; exit 1; }
+          test -f capacitor.config.json || { echo "HATA: capacitor.config.json yok"; exit 1; }
+          test -f ios-patch/patch-ios.sh || { echo "HATA: ios-patch/patch-ios.sh yok"; exit 1; }
       - run: npm install
       - run: npx cap add ios
-      - run: npx capacitor-assets generate --ios
-      - run: ./patch-ios.sh
+      - name: Ikon ve acilis ekrani
+        run: |
+          if [ -f resources/icon.png ]; then
+            [ -f resources/icon-only.png ] || cp resources/icon.png resources/icon-only.png
+            npx capacitor-assets generate --ios || echo "ikon atlandi"
+          else
+            echo "resources/icon.png yok, varsayilan ikon kullanilacak"
+          fi
+      - run: bash ios-patch/patch-ios.sh
       - run: npx cap sync ios
       - name: Archive
         working-directory: ios/App
@@ -40,4 +48,3 @@ jobs:
         with:
           name: reChat-ipa
           path: reChat.ipa
-
