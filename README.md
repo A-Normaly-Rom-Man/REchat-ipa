@@ -34,3 +34,9 @@ Xcode: App hedefi → Signing & Capabilities → Team seç → Product ▸ Archi
   (uygulama açılınca yeniden bağlanır). Sesli oda sırasında ses modu bunu kısmen korur. Gerçek push için APNs + sunucu gerekir.
 - `webkitSpeechRecognition` WKWebView'da yok; kodundaki MediaRecorder yedeği kullanılır.
 - Web `Notification` API yok → bildirim için `@capacitor/local-notifications` eklenebilir.
+
+## v2 değişiklikleri
+- Mikrofon gerektiğinde açıklama penceresi + iOS izin penceresi; izin kapalıysa Ayarlar yönlendirmesi
+- Giriş alanlarının köşe yuvarlaklığı hatası düzeltildi
+- Klavye için @capacitor/keyboard eklendi
+- Workflow dosyası build.yml olarak yeniden adlandırıldı

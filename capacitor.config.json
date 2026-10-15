@@ -8,5 +8,11 @@
     "scrollEnabled": false,
     "allowsLinkPreview": false,
     "limitsNavigationsToAppBoundDomains": false
+  },
+  "plugins": {
+    "Keyboard": {
+      "resize": "native",
+      "resizeOnFullScreen": true
+    }
   }
 }

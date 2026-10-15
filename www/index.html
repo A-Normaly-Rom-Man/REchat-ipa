@@ -187,7 +187,7 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 html,body{overscroll-behavior:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 input,textarea,.bb,.bb *{-webkit-user-select:text;user-select:text}
 .bb{-webkit-touch-callout:default}
-input,textarea,select{font-size:max(16px,1em)!important;-webkit-appearance:none;appearance:none;border-radius:inherit}
+input,textarea,select{font-size:max(16px,1em)!important;-webkit-appearance:none;appearance:none}
 input[type=checkbox]{-webkit-appearance:checkbox;appearance:auto}
 input[type=range]{-webkit-appearance:auto;appearance:auto}
 input[type=color]{-webkit-appearance:auto;appearance:auto}
@@ -270,7 +270,15 @@ const toast=t=>{const e=$('#ts');e.textContent=t;e.style.opacity=1;clearTimeout(
 const rd=b=>new Promise(r=>{const x=new FileReader();x.onload=()=>r(x.result);x.readAsDataURL(b)});
 const shrink=(f,mx=1000,q=.72)=>new Promise(async r=>{const i=new Image();i.onload=()=>{const s=Math.min(1,mx/Math.max(i.width,i.height)),c=document.createElement('canvas');c.width=i.width*s;c.height=i.height*s;c.getContext('2d').drawImage(i,0,0,c.width,c.height);r(c.toDataURL('image/jpeg',q))};i.onerror=()=>r(null);i.src=await rd(f)});
 const hs=p=>{let h=5381;for(const c of p)h=(h*33^c.charCodeAt(0))>>>0;return h.toString(36)};
-const mic=async()=>{if(!navigator.mediaDevices)return toast('Mikrofon için sayfa https:// adresinden açılmalı'),null;try{return await navigator.mediaDevices.getUserMedia({audio:true})}catch(e){toast('Mikrofon izni gerekli');return null}};
+const micBox=(t,b,btns)=>new Promise(r=>{const o=document.createElement('div');o.style.cssText='position:fixed;inset:0;z-index:9999;background:#000a;display:flex;align-items:center;justify-content:center;padding:20px';o.innerHTML='<div style="background:var(--pn,#222);color:var(--tx,#fff);border-radius:24px;padding:24px;max-width:360px;width:100%;text-align:center;box-shadow:0 20px 60px #0008"><div style="font-size:44px">🎤</div><h3 style="margin:8px 0">'+E(t)+'</h3><p style="color:var(--mt,#aaa);margin:0 0 18px;line-height:1.4">'+b+'</p><div class="mbx" style="display:flex;gap:10px"></div></div>';const bx=o.querySelector('.mbx');btns.forEach(([l,v,pri])=>{const k=document.createElement('button');k.textContent=l;k.style.cssText='flex:1;padding:14px;border-radius:16px;font-weight:700;'+(pri?'background:var(--ac,#2a5bd7);color:#fff':'background:#8883');k.onclick=()=>{o.remove();r(v)};bx.appendChild(k)});document.body.appendChild(o)});
+const micDenied=async()=>{await micBox('Mikrofon izni kapalı','Sesli özellikler için iPhone\'da <b>Ayarlar → reChat → Mikrofon</b> seçeneğini aç, sonra tekrar dene.',[['Tamam',1,1]]);return null};
+const mic=async()=>{const md=navigator.mediaDevices;
+if(!md||!md.getUserMedia){await micBox('Mikrofon kullanılamıyor','Bu cihazda ya da bu sayfada mikrofon desteklenmiyor.',[['Tamam',1,1]]);return null}
+let ps='';try{ps=(await navigator.permissions.query({name:'microphone'})).state}catch(e){}
+if(ps=='denied')return micDenied();
+if(ps!='granted'&&LS.g('rmicok')!='1'&&!await micBox('Mikrofon izni','Sesli mesaj, arama ve sesli oda için mikrofonuna erişmem gerekiyor. Devam edince iPhone izin isteyecek.',[['Şimdi değil',0],['Devam',1,1]]))return null;
+try{const st=await md.getUserMedia({audio:true});LS.s('rmicok','1');return st}
+catch(e){const n=e&&e.name;if(n=='NotAllowedError'||n=='SecurityError'||n=='PermissionDeniedError')return micDenied();toast(n=='NotFoundError'?'Mikrofon bulunamadı':n=='NotReadableError'?'Mikrofon başka bir uygulamada kullanılıyor':'Mikrofon açılamadı');return null}};
 /* 80 tema: 20 renk x 4 stil */
 const HN=['Kırmızı','Turuncu','Amber','Sarı','Limon','Yeşil','Zümrüt','Turkuaz','Deniz','Gökyüzü','Mavi','Çivit','Mor','Menekşe','Eflatun','Pembe','Gül','Mercan','Kahve','Taş'],HU=[0,22,38,50,78,140,158,174,188,200,216,236,262,280,300,330,348,12,28,215],SN=['Açık','Koyu','Yumuşak','Gece'],TH=[];
 SN.forEach((s,si)=>HN.forEach((n,i)=>{const h=HU[i],k=i==19?.12:1,c=(a,b)=>`hsl(${h} ${a*k}% ${b}%)`;
@@ -746,7 +754,7 @@ const say=x=>{x=x.replace(/[*_`#>~]/g,' ').replace(/\s+/g,' ').trim();if(!x||mut
 const feed=x=>{full+=x;ab.textContent=full;$('#ach').scrollTop=1e9;$('#aia').textContent='🤖 '+full;sb+=x;let m;while((m=/^([\s\S]{18,}?[.!?…]+["')\]]*)\s+/.exec(sb))){say(m[1]);sb=sb.slice(m[0].length)}};
 let a='';try{a=await gstream(key,feed)}catch(e){const u=AIH[AIH.length-1];if(u)delete u.au;AIH.pop();AIM.pop();q.done=1;aiBusy=0;if(e.key){ab.remove();aiSt('API anahtarı geçersiz. ⚙ ile yenisini gir');$('#ak').classList.add('on');return}const m=/Failed to fetch|NetworkError/i.test(e.message)?'Bağlanamadım. İnternetini kontrol et.':e.message;ab.textContent='⚠️ '+m;$('#aia').textContent='🤖 '+m;aiSt('Tekrar denemek için mikrofona dokun');return}
 const u=AIH[AIH.length-1];if(u)delete u.au;AIH.push({role:'assistant',content:a});AIM.push({r:'a',t:a});saveM();ab.textContent=a;$('#aia').textContent='🤖 '+a;say(sb);q.done=1;if(muted()||!q.started)aiLoop()}
-async function aiRec2(){if(aiMr){aiMr.stop();return}try{const st=await navigator.mediaDevices.getUserMedia({audio:true}),ch=[],mr=aiMr=new MediaRecorder(st);mr.ondataavailable=e=>e.data.size&&ch.push(e.data);
+async function aiRec2(){if(aiMr){aiMr.stop();return}try{const st=await mic();if(!st)return;const ch=[],mr=aiMr=new MediaRecorder(st);mr.ondataavailable=e=>e.data.size&&ch.push(e.data);
 mr.onstop=async()=>{st.getTracks().forEach(t=>t.stop());aiMr=null;const mt=(mr.mimeType||'audio/webm').split(';')[0],bl=new Blob(ch,{type:mt});if(bl.size<800)return aiSt('Seni duyamadım, mikrofona dokun');aiAsk('(sesli mesaj)',{mime:mt,data:(await rd(bl)).split(',')[1]})};mr.start();aiSt('Dinliyorum… bitirince mikrofona dokun','listen')}catch(e){aiSt('Mikrofon izni gerekli')}}
 $('#aim').onclick=()=>{if(aiBusy){aiTk++;try{aiSrc&&aiSrc.stop()}catch(e){}try{speechSynthesis.cancel()}catch(e){}aiBusy=0}aiListen()};$('#aix').onclick=aiClose;$('#aik').onclick=()=>{$('#akvo').value=voice();$('#akeo').value=eng();$('#ak').classList.add('on')};
 $('#aks').onclick=()=>{const k=$('#akv').value.trim();if(k)LS.s('rgk',k);LS.s('rgv',$('#akvo').value);LS.s('rge',$('#akeo').value);$('#akv').value='';$('#ak').classList.remove('on');aiSt(k?'Anahtar kaydedildi, mikrofona dokun':'Ayarlar kaydedildi, mikrofona dokun')}
